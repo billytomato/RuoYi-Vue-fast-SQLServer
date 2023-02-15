@@ -67,47 +67,55 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 				AND lower(table_comment) like lower(concat('%', #{tableComment}, '%'))
 			</if>
 			<if test="params.beginTime != null and params.beginTime != ''"><!-- 开始时间检索 -->
-				AND date_format(create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+				AND DATEDIFF(day, create_time, #{params.beginTime}) &lt;=0
 			</if>
 			<if test="params.endTime != null and params.endTime != ''"><!-- 结束时间检索 -->
-				AND date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+				AND DATEDIFF(day, create_time, #{params.endTime}) &gt;=0
 			</if>
 		</where>
 	</select>
 
 	<select id="selectDbTableList" parameterType="GenTable" resultMap="GenTableResult">
-		select table_name, table_comment, create_time, update_time from information_schema.tables
-		where table_schema = (select database())
-		AND table_name NOT LIKE 'qrtz_%' AND table_name NOT LIKE 'gen_%'
-		AND table_name NOT IN (select table_name from gen_table)
+		select a.name as table_name,isnull(g.value,'-') as table_comment
+		,create_date as create_time,modify_date as update_time
+		from sys.tables a
+		left join sys.extended_properties g on (a.object_id = g.major_id AND g.minor_id = 0)
+		where a.name NOT LIKE 'qrtz_%' AND a.name NOT LIKE 'gen_%' and a.name NOT LIKE 'sys_%'
+		AND a.name NOT IN (select table_name from gen_table)
 		<if test="tableName != null and tableName != ''">
-			AND lower(table_name) like lower(concat('%', #{tableName}, '%'))
+			AND lower(a.name) like lower(concat('%', #{tableName}, '%'))
 		</if>
 		<if test="tableComment != null and tableComment != ''">
-			AND lower(table_comment) like lower(concat('%', #{tableComment}, '%'))
+			AND lower(g.value) like lower(concat('%', #{tableComment}, '%'))
 		</if>
 		<if test="params.beginTime != null and params.beginTime != ''"><!-- 开始时间检索 -->
-			AND date_format(create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+			AND DATEDIFF(day, create_time, #{params.beginTime}) &lt;=0
 		</if>
 		<if test="params.endTime != null and params.endTime != ''"><!-- 结束时间检索 -->
-			AND date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+			AND DATEDIFF(day, create_time, #{params.endTime}) &gt;=0
 		</if>
         order by create_time desc
 	</select>
 	
 	<select id="selectDbTableListByNames" resultMap="GenTableResult">
-		select table_name, table_comment, create_time, update_time from information_schema.tables
-		where table_name NOT LIKE 'qrtz_%' and table_name NOT LIKE 'gen_%' and table_schema = (select database())
-		and table_name in
+		select a.name as table_name,isnull(g.value,'-') as table_comment
+		,create_date as create_time,modify_date as update_time
+		from sys.tables a
+		left join sys.extended_properties g on (a.object_id = g.major_id AND g.minor_id = 0)
+		where a.name NOT LIKE 'qrtz_%' AND a.name NOT LIKE 'gen_%'
+		and a.name in
 	    <foreach collection="array" item="name" open="(" separator="," close=")">
  			#{name}
         </foreach> 
 	</select>
 	
 	<select id="selectTableByName" parameterType="String" resultMap="GenTableResult">
-		select table_name, table_comment, create_time, update_time from information_schema.tables
-		where table_comment <![CDATA[ <> ]]> '' and table_schema = (select database())
-		and table_name = #{tableName}
+		select a.name as table_name,isnull(g.value,'-') as table_comment
+			 ,create_date as create_time,modify_date as update_time
+		from sys.tables a
+				 left join sys.extended_properties g on (a.object_id = g.major_id AND g.minor_id = 0)
+		where g.value <![CDATA[ <> ]]> ''
+		  and a.name = #{tableName}
 	</select>
 	
 	<select id="selectGenTableById" parameterType="Long" resultMap="GenTableResult">
@@ -164,7 +172,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			<if test="genPath != null and genPath != ''">#{genPath},</if>
 			<if test="remark != null and remark != ''">#{remark},</if>
  			<if test="createBy != null and createBy != ''">#{createBy},</if>
-			sysdate()
+			getdate()
          )
     </insert>
     
@@ -187,7 +195,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="options != null and options != ''">options = #{options},</if>
             <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
             <if test="remark != null">remark = #{remark},</if>
-            update_time = sysdate()
+            update_time = getdate()
         </set>
         where table_id = #{tableId}
     </update>

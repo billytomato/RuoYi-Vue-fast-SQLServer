@@ -91,11 +91,18 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
-        <!-- Mysql驱动包 -->
+<!--        &lt;!&ndash; Mysql驱动包 &ndash;&gt;
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <scope>runtime</scope>
+        </dependency>-->
+
+        <!-- sqlserver驱动包 -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>12.2.0.jre8</version>
         </dependency>
 
         <!-- pagehelper 分页插件 -->
